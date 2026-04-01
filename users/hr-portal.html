@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Portal — Acme Corp</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<header class="portal-header">
+    <div class="portal-header-top">
+        <div class="brand">Acme <span>Corp</span> — HR Portal</div>
+        <div class="header-right">
+            <div class="user-info">Logged in as <strong id="userName">—</strong></div>
+            <span class="dept-badge dept-HR" id="deptBadge">HR</span>
+            <button class="btn-logout-sm" id="logoutBtn">Logout</button>
+        </div>
+    </div>
+</header>
+
+<div class="portal-body">
+
+    <!-- Page title -->
+    <div>
+        <div class="page-title">👥 Human Resources Dashboard</div>
+        <div class="page-subtitle">Team overview, member progress, and file management</div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="three-col">
+        <div class="stat-card">
+            <div class="sc-value" style="color:#f9a8d4">8</div>
+            <div class="sc-label">Total Employees</div>
+        </div>
+        <div class="stat-card">
+            <div class="sc-value" style="color:#6ee7b7">6</div>
+            <div class="sc-label">Active This Week</div>
+        </div>
+        <div class="stat-card">
+            <div class="sc-value" style="color:#fcd34d">2</div>
+            <div class="sc-label">Pending Reviews</div>
+        </div>
+    </div>
+
+    <!-- Team Members Table -->
+    <div class="panel">
+        <div class="panel-header">
+            <span class="ph-label">📋 Team Members &amp; Progress</span>
+            <button class="btn btn-default" onclick="exportPII()">Export PII Data</button>
+        </div>
+        <div class="panel-body" style="padding:0">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Department</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Task Progress</th>
+                        <th>Last Active</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="teamTable">
+                    <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Loading…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="two-col">
+
+        <!-- HR Documents -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="ph-label">📁 HR Documents</span>
+            </div>
+            <div class="panel-body">
+                <div class="file-list">
+                    <div class="file-item">
+                        <span class="file-icon">📄</span>
+                        <div class="file-info">
+                            <div class="file-name">Remote Work Policy v2.pdf</div>
+                            <div class="file-meta">Updated Mar 2025 · 142 KB</div>
+                        </div>
+                        <div class="file-action">
+                            <button class="btn btn-default" onclick="openFile('Remote Work Policy')">View</button>
+                        </div>
+                    </div>
+                    <div class="file-item">
+                        <span class="file-icon">📊</span>
+                        <div class="file-info">
+                            <div class="file-name">Q1 Headcount Report.xlsx</div>
+                            <div class="file-meta">Updated Jan 2025 · 88 KB</div>
+                        </div>
+                        <div class="file-action">
+                            <button class="btn btn-default" onclick="openFile('Q1 Headcount Report')">View</button>
+                        </div>
+                    </div>
+                    <div class="file-item">
+                        <span class="file-icon">🔒</span>
+                        <div class="file-info">
+                            <div class="file-name">Employee Salary Records.csv</div>
+                            <div class="file-meta">Confidential · 2.1 MB · All employees</div>
+                        </div>
+                        <div class="file-action">
+                            <button class="btn btn-warning" onclick="accessSalary()">Access</button>
+                        </div>
+                    </div>
+                    <div class="file-item">
+                        <span class="file-icon">📋</span>
+                        <div class="file-info">
+                            <div class="file-name">Performance Review Template.docx</div>
+                            <div class="file-meta">Updated Feb 2025 · 34 KB</div>
+                        </div>
+                        <div class="file-action">
+                            <button class="btn btn-default" onclick="openFile('Performance Review Template')">View</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Production Code Access (sensitive) -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="ph-label">⚙️ Engineering Files</span>
+                <span class="badge badge-medium">Restricted</span>
+            </div>
+            <div class="panel-body">
+                <div class="alert alert-medium" style="margin-bottom:12px">
+                    <span class="alert-icon">⚠️</span>
+                    <div class="alert-body">
+                        <div class="alert-title">Cross-Department Access</div>
+                        <div class="alert-desc">These files belong to Engineering. HR access may trigger a security review.</div>
+                    </div>
+                </div>
+                <div class="file-list">
+                    <div class="file-item">
+                        <span class="file-icon">💻</span>
+                        <div class="file-info">
+                            <div class="file-name">backend/app.py</div>
+                            <div class="file-meta">Production · Python · Last commit 2h ago</div>
+                        </div>
+                        <div class="file-action">
+                            <button class="btn btn-warning" onclick="accessCode('backend/app.py')">Open</button>
+                        </div>
+                    </div>
+                    <div class="file-item">
+                        <span class="file-icon">🔐</span>
+                        <div class="file-info">
+                            <div class="file-name">.env.production</div>
+                            <div class="file-meta">Secrets · API keys &amp; DB credentials</div>
+                        </div>
+                        <div class="file-action">
+                            <button class="btn btn-danger" onclick="accessCode('.env.production')">Open</button>
+                        </div>
+                    </div>
+                    <div class="file-item">
+                        <span class="file-icon">🗄️</span>
+                        <div class="file-info">
+                            <div class="file-name">database_backup_2025.sql</div>
+                            <div class="file-meta">Production DB dump · 45 MB</div>
+                        </div>
+                        <div class="file-action">
+                            <button class="btn btn-danger" onclick="accessCode('database_backup_2025.sql')">Download</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div id="toast"></div>
+<script src="hr-portal.js"></script>
+</body>
+</html>

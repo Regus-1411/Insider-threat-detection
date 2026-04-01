@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Login — Acme Corp</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="login-wrap">
+    <div class="login-card">
+        <div class="login-logo">
+            <div class="company">Acme <span>Corp</span></div>
+            <div class="tagline">Internal Employee Portal</div>
+        </div>
+
+        <h2>Sign in to your account</h2>
+        <p class="sub">Select a demo account or enter credentials manually.</p>
+
+        <!-- Quick-login persona cards -->
+        <div class="persona-list" id="personaList"></div>
+
+        <div class="divider"><span>OR SIGN IN MANUALLY</span></div>
+
+        <form id="loginForm" novalidate>
+            <div class="field">
+                <label for="email">Company Email</label>
+                <input type="email" id="email" placeholder="you@company.com" required>
+            </div>
+            <div class="field">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="••••••••" required>
+            </div>
+            <div class="error-msg" id="errorMsg"></div>
+            <button type="submit" class="btn-primary" id="submitBtn">Sign In</button>
+        </form>
+    </div>
+</div>
+<script src="login.js"></script>
+</body>
+</html>

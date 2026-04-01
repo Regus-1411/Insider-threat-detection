@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Portal — Acme Corp</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<header class="portal-header">
+    <div class="portal-header-top">
+        <div class="brand">Acme <span>Corp</span> — Finance Portal</div>
+        <div class="header-right">
+            <div class="user-info">Logged in as <strong id="userName">—</strong></div>
+            <span class="dept-badge dept-Finance" id="deptBadge">Finance</span>
+            <button class="btn-logout-sm" id="logoutBtn">Logout</button>
+        </div>
+    </div>
+</header>
+
+<div class="portal-body">
+
+    <div>
+        <div class="page-title">💰 Finance Dashboard</div>
+        <div class="page-subtitle" id="userRoleLabel">Financial operations and transaction management</div>
+    </div>
+
+    <!-- Anomaly alert (hidden by default, shown if triggered) -->
+    <div class="alert alert-high" id="anomalyAlert" style="display:none">
+        <span class="alert-icon">🚨</span>
+        <div class="alert-body">
+            <div class="alert-title">HIGH THREAT DETECTED — Bulk Financial Data Download</div>
+            <div class="alert-desc">A large-scale export of financial records was requested. This has been flagged and escalated to the security team. Admin has been notified. Your session is under review.</div>
+        </div>
+    </div>
+
+    <!-- Summary stats -->
+    <div class="three-col">
+        <div class="stat-card">
+            <div class="sc-value" style="color:#a5b4fc">$2.4M</div>
+            <div class="sc-label">Monthly Revenue</div>
+        </div>
+        <div class="stat-card">
+            <div class="sc-value" style="color:#6ee7b7">$187K</div>
+            <div class="sc-label">Pending Invoices</div>
+        </div>
+        <div class="stat-card">
+            <div class="sc-value" style="color:#fcd34d">14</div>
+            <div class="sc-label">Expense Reports</div>
+        </div>
+    </div>
+
+    <!-- Transaction Log -->
+    <div class="panel">
+        <div class="panel-header">
+            <span class="ph-label">📊 Recent Transaction Log</span>
+            <div style="display:flex;gap:8px">
+                <button class="btn btn-default" onclick="exportMonthly()">Export Monthly Report</button>
+                <button class="btn btn-danger" onclick="bulkDownloadAll()" id="bulkBtn">⬇ Bulk Download All Records</button>
+            </div>
+        </div>
+        <div class="panel-body" style="padding:0">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Transaction ID</th>
+                        <th>Description</th>
+                        <th>Amount</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Authorized By</th>
+                    </tr>
+                </thead>
+                <tbody id="txTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="two-col">
+
+        <!-- Expense Reports -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="ph-label">🧾 Pending Expense Reports</span>
+            </div>
+            <div class="panel-body">
+                <div class="file-list">
+                    <div class="file-item">
+                        <span class="file-icon">🧾</span>
+                        <div class="file-info">
+                            <div class="file-name">Q4 Travel — Alice Martin</div>
+                            <div class="file-meta">$3,240.00 · Submitted Dec 2024</div>
+                        </div>
+                        <div class="file-action">
+                            <button class="btn btn-success" onclick="approveExpense('Q4 Travel')">Approve</button>
+                        </div>
+                    </div>
+                    <div class="file-item">
+                        <span class="file-icon">🧾</span>
+                        <div class="file-info">
+                            <div class="file-name">Client Dinner — Grace Patel</div>
+                            <div class="file-meta">$890.00 · Submitted Jan 2025</div>
+                        </div>
+                        <div class="file-action">
+                            <button class="btn btn-success" onclick="approveExpense('Client Dinner')">Approve</button>
+                        </div>
+                    </div>
+                    <div class="file-item">
+                        <span class="file-icon">🧾</span>
+                        <div class="file-info">
+                            <div class="file-name">Software Licenses — IT Dept</div>
+                            <div class="file-meta">$12,500.00 · Submitted Feb 2025</div>
+                        </div>
+                        <div class="file-action">
+                            <button class="btn btn-success" onclick="approveExpense('Software Licenses')">Approve</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payroll Access -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="ph-label">💳 Payroll &amp; Sensitive Data</span>
+                <span class="badge badge-high">Sensitive</span>
+            </div>
+            <div class="panel-body">
+                <div class="file-list">
+                    <div class="file-item">
+                        <span class="file-icon">💰</span>
+                        <div class="file-info">
+                            <div class="file-name">Payroll Run — March 2025</div>
+                            <div class="file-meta">All employees · Confidential</div>
+                        </div>
+                        <div class="file-action">
+                            <button class="btn btn-warning" onclick="accessPayroll()">Open</button>
+                        </div>
+                    </div>
+                    <div class="file-item">
+                        <span class="file-icon">🏦</span>
+                        <div class="file-info">
+                            <div class="file-name">Link External Bank Account</div>
+                            <div class="file-meta">Add unverified payment provider</div>
+                        </div>
+                        <div class="file-action">
+                            <button class="btn btn-warning" onclick="linkExternal()">Link</button>
+                        </div>
+                    </div>
+                    <div class="file-item">
+                        <span class="file-icon">💸</span>
+                        <div class="file-info">
+                            <div class="file-name">Initiate Wire Transfer</div>
+                            <div class="file-meta">$500,000+ to overseas account</div>
+                        </div>
+                        <div class="file-action">
+                            <button class="btn btn-danger" onclick="initiateTransfer()">Initiate</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div id="toast"></div>
+<script src="finance-portal.js"></script>
+</body>
+</html>

@@ -25,12 +25,14 @@ def init_db():
         );
 
         CREATE TABLE IF NOT EXISTS users (
-            id          INTEGER  PRIMARY KEY AUTOINCREMENT,
-            name        TEXT     NOT NULL,
-            email       TEXT     UNIQUE NOT NULL,
-            department  TEXT     NOT NULL,
-            is_active   BOOLEAN  NOT NULL DEFAULT 0,
-            created_at  DATETIME NOT NULL DEFAULT (datetime('now'))
+            id            INTEGER  PRIMARY KEY AUTOINCREMENT,
+            name          TEXT     NOT NULL,
+            email         TEXT     UNIQUE NOT NULL,
+            password_hash TEXT     NOT NULL DEFAULT '',
+            department    TEXT     NOT NULL,
+            role          TEXT     NOT NULL DEFAULT 'Employee',
+            is_active     BOOLEAN  NOT NULL DEFAULT 0,
+            created_at    DATETIME NOT NULL DEFAULT (datetime('now'))
         );
 
         CREATE TABLE IF NOT EXISTS user_logs (
