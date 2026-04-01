@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — Insider Threat Monitor</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- ═══════════════════════════════ HEADER ═══════════════════════════════ -->
+<header class="header">
+    <!-- Brand + controls row -->
+    <div class="header-top">
+        <div class="brand">Threat <span>Monitor</span> &mdash; Admin Console</div>
+        <div class="right">
+            <span class="clock" id="clock">--:--:--</span>
+            <span class="admin-badge" id="adminBadge">admin</span>
+            <button class="btn-logout" id="logoutBtn">Logout</button>
+        </div>
+    </div>
+
+    <!-- Welcome + system directives row -->
+    <div class="header-sub">
+        <div class="welcome-text">
+            Welcome back, <strong id="adminName">Admin</strong> &mdash;
+            <span id="todayDate"></span>
+        </div>
+        <div class="directives">
+            <div class="directive-item">
+                <span class="dot dot-green"></span> System Operational
+            </div>
+            <div class="directive-item">
+                <span class="dot dot-yellow"></span> Monitor Active Sessions
+            </div>
+            <div class="directive-item">
+                <span class="dot dot-red"></span> Review High-Risk Users
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- ═══════════════════════════════ MAIN ════════════════════════════════ -->
+<main class="main">
+
+    <!-- Summary Cards -->
+    <div class="summary-grid">
+        <div class="stat-card">
+            <div class="label">Total Users</div>
+            <div class="value" id="statTotal">—</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Active Sessions</div>
+            <div class="value" id="statActive">—</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Flags Today</div>
+            <div class="value" id="statFlags">—</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">High-Risk Users</div>
+            <div class="value" id="statHighRisk">—</div>
+        </div>
+    </div>
+
+    <!-- Users Panel -->
+    <div class="panel">
+        <div class="panel-header">
+            <h2>Monitored Users</h2>
+            <span class="hint">Click a row for full details &rarr;</span>
+        </div>
+        <div class="search-row">
+            <input type="text" id="userSearch" placeholder="Search by name, email or department…">
+        </div>
+        <div style="overflow-x:auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Department</th>
+                        <th>Sessions Today</th>
+                        <th>Risk Level</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="userTbody">
+                    <tr class="loading-row"><td colspan="6">Loading…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</main>
+
+<!-- ═══════════════════════ USER DETAIL DRAWER ═══════════════════════ -->
+<div class="detail-overlay" id="overlay"></div>
+
+<aside class="detail-drawer" id="detailDrawer">
+    <div class="drawer-header">
+        <h3 id="drawerTitle">User Details</h3>
+        <button class="btn-close" id="closeDrawer" title="Close">&times;</button>
+    </div>
+    <div class="drawer-body" id="drawerBody">
+        <div class="drawer-loading">Select a user to view details.</div>
+    </div>
+</aside>
+
+<script src="dashboard.js"></script>
+</body>
+</html>
