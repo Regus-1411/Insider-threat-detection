@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Portal — Acme Corp</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<header class="portal-header">
+    <div class="portal-header-top">
+        <div class="brand">Acme <span>Corp</span> — Employee Portal</div>
+        <div class="header-right">
+            <div class="user-info">Logged in as <strong id="userName">—</strong></div>
+            <span class="dept-badge" id="deptBadge">—</span>
+            <button class="btn-logout-sm" id="logoutBtn">Logout</button>
+        </div>
+    </div>
+</header>
+
+<div class="portal-body">
+
+    <div>
+        <div class="page-title" id="pageTitle">🏢 Employee Workspace</div>
+        <div class="page-subtitle" id="pageSubtitle">Loading your workspace…</div>
+    </div>
+
+    <!-- OFF-HOURS ALERT (shown automatically if off-hours login detected) -->
+    <div class="alert alert-low" id="offHoursAlert" style="display:none">
+        <span class="alert-icon">🕐</span>
+        <div class="alert-body">
+            <div class="alert-title">Off-Hours Login Detected</div>
+            <div class="alert-desc" id="offHoursMsg">You are logging in outside business hours (09:00–17:00). This has been automatically flagged as a Low-level security alert and reported to your administrator.</div>
+        </div>
+    </div>
+
+    <!-- ADMIN TERMINATED NOTICE -->
+    <div class="alert alert-high" id="terminatedAlert" style="display:none">
+        <span class="alert-icon">🔴</span>
+        <div class="alert-body">
+            <div class="alert-title">Session Terminated by Administrator</div>
+            <div class="alert-desc">An administrator has reviewed the off-hours alert and terminated your session. You will be logged out in 5 seconds.</div>
+        </div>
+    </div>
+
+    <!-- Quick stats -->
+    <div class="three-col">
+        <div class="stat-card">
+            <div class="sc-value" id="statTasks" style="color:#a5b4fc">—</div>
+            <div class="sc-label">Open Tasks</div>
+        </div>
+        <div class="stat-card">
+            <div class="sc-value" id="statMeetings" style="color:#6ee7b7">3</div>
+            <div class="sc-label">Meetings Today</div>
+        </div>
+        <div class="stat-card">
+            <div class="sc-value" id="statMessages" style="color:#fcd34d">7</div>
+            <div class="sc-label">Unread Messages</div>
+        </div>
+    </div>
+
+    <div class="two-col">
+
+        <!-- My Tasks -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="ph-label">✅ My Tasks</span>
+                <button class="btn btn-default" onclick="addTask()">+ New Task</button>
+            </div>
+            <div class="panel-body" style="padding:0">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Task</th>
+                            <th>Due Date</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="taskTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- My Files -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="ph-label">📁 My Files</span>
+            </div>
+            <div class="panel-body">
+                <div class="file-list" id="fileList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Access Panel -->
+    <div class="panel">
+        <div class="panel-header">
+            <span class="ph-label">🔐 Workspace Access</span>
+        </div>
+        <div class="panel-body">
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <button class="btn btn-default" onclick="doAction('open_email', 'normal')">📧 Open Email</button>
+                <button class="btn btn-default" onclick="doAction('access_intranet', 'normal')">🌐 Company Intranet</button>
+                <button class="btn btn-default" onclick="doAction('view_directory', 'normal')">👥 Employee Directory</button>
+                <button class="btn btn-default" onclick="doAction('submit_timesheet', 'normal')">🕐 Submit Timesheet</button>
+                <button class="btn btn-warning" onclick="doAction('access_other_dept_files', 'suspicious', 'Cross-Department Access', 'Employee accessed files outside their department.')">⚠️ Access Other Dept Files</button>
+                <button class="btn btn-danger" onclick="doAction('install_remote_tool', 'high', 'Unauthorized Remote Tool', 'Employee attempted to install unauthorized remote-access software.')">🚨 Install Remote Tool</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div id="toast"></div>
+<script src="employee-portal.js"></script>
+</body>
+</html>

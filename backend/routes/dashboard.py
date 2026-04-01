@@ -130,6 +130,42 @@ def terminate_session(user_id):
     return jsonify({'message': 'Session terminated'})
 
 
+# ─── Terminate via /api/admin/terminate/<id> (used by dashboard.js) ──────────
+
+@dashboard_bp.route('/api/admin/terminate/<int:user_id>', methods=['POST'])
+def admin_terminate(user_id):
+    if require_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    conn = get_connection()
+    conn.execute("UPDATE users SET is_active = 0 WHERE id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Session terminated'})
+
+
+# ─── Active sessions with off-hours flags ─────────────────────────────────────
+
+@dashboard_bp.route('/api/admin/active-sessions', methods=['GET'])
+def active_sessions():
+    if require_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    conn = get_connection()
+    rows = conn.execute("""
+        SELECT
+            u.id, u.name, u.email, u.department,
+            f.flag_type, f.severity, f.timestamp AS flag_time
+        FROM users u
+        JOIN flags f ON f.user_id = u.id
+        WHERE u.is_active = 1
+          AND f.resolved  = 0
+        ORDER BY f.timestamp DESC
+    """).fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+
 # ─── Resolve a flag ───────────────────────────────────────────────────────────
 
 @dashboard_bp.route('/api/flags/<int:flag_id>/resolve', methods=['POST'])
@@ -142,3 +178,17 @@ def resolve_flag(flag_id):
     conn.commit()
     conn.close()
     return jsonify({'message': 'Flag resolved'})
+
+
+# ─── Risk scores (used by portal.js risk bar) ────────────────────────────────
+
+@dashboard_bp.route('/api/risk', methods=['GET'])
+def risk_scores():
+    conn = get_connection()
+    rows = conn.execute("""
+        SELECT u.name, r.score, r.level
+        FROM risk_scores r
+        JOIN users u ON u.id = r.user_id
+    """).fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])

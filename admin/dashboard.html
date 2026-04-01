@@ -64,6 +64,32 @@
         </div>
     </div>
 
+    <!-- ⚠️ Active Sessions & Off-Hours Alerts Panel -->
+    <div class="panel" id="activeSessionsPanel">
+        <div class="panel-header" style="border-left: 3px solid var(--amber);">
+            <h2>⚠️ Active Sessions — Off-Hours Alerts</h2>
+            <span class="hint">Users logged in outside 09:00–17:00. Terminate to force logout.</span>
+        </div>
+        <div style="overflow-x:auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Email</th>
+                        <th>Department</th>
+                        <th>Flag</th>
+                        <th>Flagged At</th>
+                        <th>Severity</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="activeSessionsTbody">
+                    <tr class="loading-row"><td colspan="7">Loading active sessions…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- Users Panel -->
     <div class="panel">
         <div class="panel-header">

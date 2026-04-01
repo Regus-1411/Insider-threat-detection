@@ -243,7 +243,7 @@ async function handleTerminate(userId, checkbox) {
         return;
     }
     try {
-        await fetch(`${API}/api/users/${userId}/terminate`, {
+        await fetch(`${API}/api/admin/terminate/${userId}`, {
             method: 'POST',
             credentials: 'include',
         });
@@ -252,6 +252,7 @@ async function handleTerminate(userId, checkbox) {
         if (u) u.is_active = 0;
         renderUsers(allUsers);
         loadSummary();
+        loadActiveSessions();
         // Re-fetch drawer to update status display
         fetchUserDetail(userId);
     } catch {
@@ -274,9 +275,66 @@ async function resolveFlag(flagId, userId) {
     }
 }
 
+// ── Active Sessions (Off-Hours Alerts) ───────────────────────────────────────
+async function loadActiveSessions() {
+    const tbody = document.getElementById('activeSessionsTbody');
+    try {
+        const res = await fetch(`${API}/api/admin/active-sessions`, { credentials: 'include' });
+        const rows = await res.json();
+
+        // Show all active sessions that have an unresolved flag
+        const flagged = rows;
+
+        if (!flagged.length) {
+            tbody.innerHTML = '<tr class="empty-row"><td colspan="7" style="color:var(--muted)">No off-hours sessions detected.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = flagged.map(r => `
+            <tr>
+                <td><strong>${r.name}</strong></td>
+                <td>${r.email}</td>
+                <td>${r.department}</td>
+                <td><span class="badge badge-medium">${r.flag_type || '—'}</span></td>
+                <td style="color:var(--muted);font-size:12px">${r.flag_time ? new Date(r.flag_time).toLocaleString() : '—'}</td>
+                <td><span class="badge badge-low">${r.severity || 'Low'}</span></td>
+                <td>
+                    <button class="btn-terminate" onclick="terminateFromPanel(${r.id}, this)">
+                        ⛔ Terminate Session
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    } catch {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="7">Failed to load active sessions.</td></tr>';
+    }
+}
+
+async function terminateFromPanel(userId, btn) {
+    if (!confirm('Terminate this user\'s session? They will be forced off within ~8 seconds.')) return;
+    btn.disabled = true;
+    btn.textContent = 'Terminating…';
+    try {
+        await fetch(`${API}/api/admin/terminate/${userId}`, {
+            method: 'POST', credentials: 'include',
+        });
+        const u = allUsers.find(u => u.id === userId);
+        if (u) u.is_active = 0;
+        renderUsers(allUsers);
+        loadSummary();
+        loadActiveSessions();
+        btn.closest('tr').style.opacity = '0.4';
+        btn.textContent = '✓ Terminated';
+    } catch {
+        alert('Failed to terminate session.');
+        btn.disabled = false;
+        btn.textContent = '⛔ Terminate Session';
+    }
+}
+
 // ── Poll + init ───────────────────────────────────────────────────────────────
 async function refreshAll() {
-    await Promise.all([loadSummary(), loadUsers()]);
+    await Promise.all([loadSummary(), loadUsers(), loadActiveSessions()]);
 }
 
 (async () => {
@@ -284,5 +342,5 @@ async function refreshAll() {
     if (!ok) return;
     startClock();
     await refreshAll();
-    setInterval(refreshAll, 30_000);
+    setInterval(refreshAll, 3000); // 3 seconds for autonomous real-time updates
 })();
