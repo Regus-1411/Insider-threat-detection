@@ -5,14 +5,46 @@ from datetime import datetime
 
 user_bp = Blueprint('user', __name__)
 
-USER_AGENT = 'Chrome 122'
-USER_IP    = '192.168.1.55'
-USER_OS    = 'Windows 11'
-USER_LOC   = 'Office — Local Network'
+
+def _get_client_info():
+    """Extract real client info from the request context."""
+    ip = request.remote_addr or '127.0.0.1'
+    ua = request.headers.get('User-Agent', 'Unknown')
+    # Rough browser/OS parsing from UA string
+    ua_low = ua.lower()
+    if 'firefox' in ua_low:   browser = 'Firefox'
+    elif 'edg' in ua_low:     browser = 'Edge'
+    elif 'chrome' in ua_low:  browser = 'Chrome'
+    elif 'safari' in ua_low:  browser = 'Safari'
+    else:                     browser = 'Unknown'
+    if 'windows' in ua_low:   os_name = 'Windows'
+    elif 'mac' in ua_low:     os_name = 'macOS'
+    elif 'linux' in ua_low:   os_name = 'Linux'
+    elif 'android' in ua_low: os_name = 'Android'
+    else:                     os_name = 'Unknown'
+    return ip, os_name, browser
 
 
 def require_user():
-    return 'user_id' not in session
+    user_id = session.get('user_id')
+    if not user_id:
+        return True
+    
+    # Check if admin forcibly terminated the session (is_active = 0)
+    conn = get_connection()
+    row = conn.execute("SELECT is_active FROM users WHERE id=?", (user_id,)).fetchone()
+    conn.close()
+    
+    if not row or row['is_active'] == 0:
+        # Session was killed. Pop session variables quietly
+        session.pop('user_id', None)
+        session.pop('user_name', None)
+        session.pop('user_dept', None)
+        session.pop('user_role', None)
+        session.pop('user_email', None)
+        return True
+    
+    return False
 
 
 def _bump_risk(conn, user_id, delta):
@@ -33,6 +65,7 @@ def _bump_risk(conn, user_id, delta):
         "UPDATE risk_scores SET score=?, level=?, last_calculated=datetime('now') WHERE user_id=?",
         (new_score, level, user_id)
     )
+    return new_score
 
 
 # ── User login ────────────────────────────────────────────────────────────────
@@ -56,6 +89,8 @@ def user_login():
         conn.close()
         return jsonify({'error': 'Invalid credentials'}), 401
 
+    ip, os_name, browser = _get_client_info()
+
     # Mark user as active
     conn.execute("UPDATE users SET is_active=1 WHERE id=?", (user['id'],))
 
@@ -63,7 +98,7 @@ def user_login():
     conn.execute("""
         INSERT INTO user_logs (user_id, action, ip_address, device_os, browser, location, sessions_today)
         VALUES (?, 'login', ?, ?, ?, ?, 1)
-    """, (user['id'], USER_IP, USER_OS, USER_AGENT, USER_LOC))
+    """, (user['id'], ip, os_name, browser, 'Network Login'))
 
     conn.commit()
     conn.close()
@@ -87,15 +122,20 @@ def user_login():
 def user_logout():
     uid = session.get('user_id')
     if uid:
+        ip, os_name, browser = _get_client_info()
         conn = get_connection()
         conn.execute("UPDATE users SET is_active=0 WHERE id=?", (uid,))
         conn.execute("""
             INSERT INTO user_logs (user_id, action, ip_address, device_os, browser, location, sessions_today)
             VALUES (?, 'logout', ?, ?, ?, ?, 0)
-        """, (uid, USER_IP, USER_OS, USER_AGENT, USER_LOC))
+        """, (uid, ip, os_name, browser, 'Network Logout'))
         conn.commit()
         conn.close()
-    session.clear()
+    session.pop('user_id', None)
+    session.pop('user_name', None)
+    session.pop('user_dept', None)
+    session.pop('user_role', None)
+    session.pop('user_email', None)
     return jsonify({'message': 'Logged out'}), 200
 
 
@@ -119,28 +159,34 @@ def log_action():
     if require_user():
         return jsonify({'error': 'Not authenticated'}), 401
 
-    data       = request.get_json(force=True)
-    action     = data.get('action', 'unknown')
-    risk_tier  = data.get('risk_tier', 'normal')   # normal | suspicious | high
-    flag_type  = data.get('flag_type', '')
-    notes      = data.get('notes', '')
-    user_id    = session['user_id']
+    data      = request.get_json(force=True) or {}
+    action    = data.get('action', 'unknown')
+    risk_tier = data.get('risk_tier', 'normal')   # normal | suspicious | high
+    flag_type = data.get('flag_type', '')
+    notes     = data.get('notes', '')
+    user_id   = session.get('user_id')  # safe get — interceptor may have cleared session
+
+    # Guard: if interceptor already terminated this session, bail out silently
+    if not user_id:
+        return jsonify({'error': 'Service temporarily unavailable. Please try again later.'}), 503
+
+    ip, os_name, browser = _get_client_info()
 
     conn = get_connection()
 
-    # Count sessions today for this user
+    # Count actions today (not sessions) for this user
     today = datetime.now().strftime('%Y-%m-%d')
-    sessions_today = conn.execute("""
+    actions_today = conn.execute("""
         SELECT COUNT(*) FROM user_logs
         WHERE user_id=? AND date(timestamp)=?
     """, (user_id, today)).fetchone()[0] + 1
 
-    # Write log entry
+    # Write log entry with real client info
     conn.execute("""
         INSERT INTO user_logs
             (user_id, action, ip_address, device_os, browser, location, sessions_today)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (user_id, action, USER_IP, USER_OS, USER_AGENT, USER_LOC, sessions_today))
+    """, (user_id, action, ip, os_name, browser, 'Employee Portal', actions_today))
 
     # Auto-generate flag for suspicious / high-risk actions
     if risk_tier in ('suspicious', 'high'):
@@ -152,7 +198,21 @@ def log_action():
 
         # Bump risk score: suspicious +8, high +18
         delta = 18 if risk_tier == 'high' else 8
-        _bump_risk(conn, user_id, delta)
+        new_score = _bump_risk(conn, user_id, delta)
+
+        try:
+            from app import socketio
+            socketio.emit('security_alert', {
+                'user_id':   user_id,
+                'user_name': session.get('user_name', 'Unknown'),
+                'flag':      flag_type or action,
+                'severity':  severity,
+                'notes':     notes or 'Triggered via user portal simulation',
+                'score':     new_score,
+                'timestamp': datetime.utcnow().isoformat(),
+            }, namespace='/admin')
+        except Exception:
+            pass
 
     conn.commit()
     conn.close()

@@ -18,7 +18,7 @@ async function checkAuth() {
         if (!res.ok) { window.location.href = 'index.html'; return false; }
         const data = await res.json();
         document.getElementById('adminBadge').textContent = data.email;
-        document.getElementById('adminName').textContent  = data.email.split('@')[0];
+        document.getElementById('adminName').textContent = data.email.split('@')[0];
         return true;
     } catch {
         window.location.href = 'index.html';
@@ -29,11 +29,11 @@ async function checkAuth() {
 // ── Clock + Date ───────────────────────────────────────────────────────────────
 function startClock() {
     const clockEl = document.getElementById('clock');
-    const dateEl  = document.getElementById('todayDate');
+    const dateEl = document.getElementById('todayDate');
     const tick = () => {
         const now = new Date();
         clockEl.textContent = now.toLocaleTimeString();
-        dateEl.textContent  = now.toLocaleDateString('en-GB', {
+        dateEl.textContent = now.toLocaleDateString('en-GB', {
             weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
         });
     };
@@ -52,10 +52,10 @@ async function loadSummary() {
     try {
         const res = await fetch(`${API}/api/summary`, { credentials: 'include' });
         const d = await res.json();
-        document.getElementById('statTotal').textContent    = d.total_users  ?? '—';
-        document.getElementById('statActive').textContent   = d.active_users ?? '—';
-        document.getElementById('statFlags').textContent    = d.flags_today  ?? '—';
-        document.getElementById('statHighRisk').textContent = d.high_risk    ?? '—';
+        document.getElementById('statTotal').textContent = d.total_users ?? '—';
+        document.getElementById('statActive').textContent = d.active_users ?? '—';
+        document.getElementById('statFlags').textContent = d.flags_today ?? '—';
+        document.getElementById('statHighRisk').textContent = d.high_risk ?? '—';
     } catch { /* keep previous */ }
 }
 
@@ -88,7 +88,7 @@ function renderUsers(list) {
             <td>${u.department}</td>
             <td>${u.sessions_today}</td>
             <td>${badge(u.risk_level.toLowerCase(), u.risk_level)}</td>
-            <td>${u.is_active ? badge('online','Online') : badge('offline','Offline')}</td>
+            <td>${u.is_active ? badge('online', 'Online') : badge('offline', 'Offline')}</td>
         </tr>
     `).join('');
 }
@@ -104,8 +104,8 @@ document.getElementById('userSearch').addEventListener('input', e => {
 
 // ── Drawer open / close ───────────────────────────────────────────────────────
 const overlay = document.getElementById('overlay');
-const drawer  = document.getElementById('detailDrawer');
-const drawerBody  = document.getElementById('drawerBody');
+const drawer = document.getElementById('detailDrawer');
+const drawerBody = document.getElementById('drawerBody');
 const drawerTitle = document.getElementById('drawerTitle');
 
 function openDrawer(userId) {
@@ -142,23 +142,24 @@ async function fetchUserDetail(userId) {
 function renderDrawer({ user, fingerprint, flags }) {
     drawerTitle.textContent = user.name;
 
-    // ── Terminate session section (shown always, active only when session is on) ──
-    const isHigh   = user.risk_level === 'High';
+    // ── Terminate session section (shown always, active only when threat confirmed) ──
+    const isHigh = user.risk_level === 'High';
     const isOnline = !!user.is_active;
+    const canTerminate = isOnline && isHigh;
     const terminateSection = `
         <div class="terminate-box">
             <div class="term-label">
                 <span>Terminate Session</span>
                 <p>${isOnline
-                    ? (isHigh ? 'High-risk user — session can be forcibly terminated.'
-                              : 'User is active. Terminate only if threat is confirmed.')
-                    : 'User session is currently offline.'}</p>
+            ? (isHigh ? '<span style="color:var(--danger)">High-risk threat confirmed — session can be forcefully terminated.</span>'
+                : 'Active session, but threat is not confirmed. Termination locked.')
+            : 'User session is currently offline.'}</p>
             </div>
             <div class="toggle-wrap">
-                <span class="toggle-label" id="termLabel">${isOnline ? 'Active' : 'Offline'}</span>
-                <label class="toggle" title="${isOnline ? 'Terminate session' : 'Session already offline'}">
+                <span class="toggle-label" id="termLabel">${isOnline ? (isHigh ? 'Active' : 'Locked') : 'Offline'}</span>
+                <label class="toggle" title="${isOnline ? (isHigh ? 'Terminate session' : 'Threat not confirmed') : 'Session already offline'}">
                     <input type="checkbox" id="terminateSwitch"
-                        ${isOnline ? '' : 'disabled'}
+                        ${canTerminate ? '' : 'disabled'}
                         onchange="handleTerminate(${user.id}, this)">
                     <span class="slider"></span>
                 </label>
@@ -173,7 +174,7 @@ function renderDrawer({ user, fingerprint, flags }) {
                 <div class="info-item"><div class="key">Name</div><div class="val">${user.name}</div></div>
                 <div class="info-item"><div class="key">Email</div><div class="val">${user.email}</div></div>
                 <div class="info-item"><div class="key">Department</div><div class="val">${user.department}</div></div>
-                <div class="info-item"><div class="key">Status</div><div class="val">${user.is_active ? badge('online','Online') : badge('offline','Offline')}</div></div>
+                <div class="info-item"><div class="key">Status</div><div class="val">${user.is_active ? badge('online', 'Online') : badge('offline', 'Offline')}</div></div>
                 <div class="info-item"><div class="key">Sessions Today</div><div class="val">${user.sessions_today}</div></div>
                 <div class="info-item"><div class="key">Last Active</div><div class="val">${fmtTime(user.last_active)}</div></div>
             </div>
@@ -217,11 +218,11 @@ function renderDrawer({ user, fingerprint, flags }) {
                     <div class="flag-meta">${fmtTime(f.timestamp)}</div>
                 </div>
                 ${badge(f.severity.toLowerCase(), f.severity)}
-                ${f.resolved ? badge('resolved','Resolved') : badge('open','Open')}
+                ${f.resolved ? badge('resolved', 'Resolved') : badge('open', 'Open')}
                 <div class="flag-actions">
                     ${!f.resolved
-                        ? `<button class="btn-resolve" onclick="resolveFlag(${f.id}, ${user.id})">Resolve</button>`
-                        : ''}
+                ? `<button class="btn-resolve" onclick="resolveFlag(${f.id}, ${user.id})">Resolve</button>`
+                : ''}
                 </div>
             </div>`).join('')}</div>`;
     }
@@ -337,10 +338,116 @@ async function refreshAll() {
     await Promise.all([loadSummary(), loadUsers(), loadActiveSessions()]);
 }
 
+// ── SocketIO — Real-time Alert Feed ──────────────────────────────────────────
+let _alertCount = 0;
+
+function initSocketIO() {
+    const socket = io('/admin', { withCredentials: true });
+
+    socket.on('connect', () => {
+        const badge = document.getElementById('liveIndicator');
+        if (badge) { badge.textContent = 'LIVE'; badge.style.background = 'rgba(239,68,68,.15)'; badge.style.color = '#ef4444'; }
+    });
+
+    socket.on('disconnect', () => {
+        const badge = document.getElementById('liveIndicator');
+        if (badge) { badge.textContent = 'offline'; badge.style.color = '#64748b'; }
+    });
+
+    socket.on('security_alert', (data) => {
+        _alertCount++;
+        const feed = document.getElementById('alertFeed');
+        if (!feed) return;
+
+        // Clear placeholder on first real event
+        if (_alertCount === 1) feed.innerHTML = '';
+
+        const sevClass = {
+            'Critical': 'dot-critical',
+            'High':     'dot-high',
+            'Medium':   'dot-medium',
+        }[data.severity] || 'dot-medium';
+
+        const ts = data.timestamp
+            ? new Date(data.timestamp).toLocaleTimeString()
+            : new Date().toLocaleTimeString();
+
+        const item = document.createElement('div');
+        item.className = 'alert-item';
+        item.innerHTML = `
+            <div class="alert-dot ${sevClass}"></div>
+            <div class="alert-body">
+                <div class="alert-title">${data.user_name} — ${data.flag.replace(/_/g, ' ')}</div>
+                <div class="alert-sub">
+                    Severity: <strong>${data.severity}</strong> &nbsp;|&nbsp;
+                    Risk Score: <strong>${data.score}</strong> &nbsp;|&nbsp;
+                    ${data.notes} &nbsp;|&nbsp; ${ts}
+                </div>
+            </div>
+        `;
+        // Prepend so newest alerts appear at top
+        feed.insertBefore(item, feed.firstChild);
+
+        // Refresh the user table so risk scores update
+        loadUsers();
+        loadSummary();
+    });
+}
+
+// ── Forensic Search ───────────────────────────────────────────────────────────
+async function runForensicSearch() {
+    const query    = (document.getElementById('forensicQuery')?.value || '').trim();
+    const severity = document.getElementById('forensicSeverity')?.value || '';
+    const count    = document.getElementById('fsCount');
+    const results  = document.getElementById('forensicResults');
+
+    if (count) count.textContent = 'Searching…';
+
+    try {
+        const params = new URLSearchParams();
+        if (query)    params.set('q', query);
+        if (severity) params.set('severity', severity);
+        params.set('limit', '50');
+
+        const res = await fetch(`${API}/api/forensic/search?${params}`, { credentials: 'include' });
+        const data = await res.json();
+
+        if (count) count.textContent = `${data.length} result(s) found`;
+
+        const header = `<div class="fs-row fs-header"><span>Flag / Path</span><span>User</span><span>Severity</span><span>Time</span></div>`;
+        if (!data.length) {
+            results.innerHTML = header + '<div style="color:#64748b;font-size:12px;padding:10px 0">No events match your query.</div>';
+            return;
+        }
+
+        results.innerHTML = header + data.map(row => {
+            const sevClass = `sev-${(row.severity || 'low').toLowerCase()}`;
+            const ts = row.timestamp ? new Date(row.timestamp).toLocaleString() : '—';
+            return `
+                <div class="fs-row">
+                    <span title="${row.path || ''}">${row.flag_type || row.path || '—'}</span>
+                    <span>${row.user_name || '—'}</span>
+                    <span class="${sevClass}">${row.severity || '—'}</span>
+                    <span style="color:#64748b">${ts}</span>
+                </div>
+            `;
+        }).join('');
+
+    } catch {
+        if (count) count.textContent = 'Search failed. Check connection.';
+    }
+}
+
+// Support pressing Enter in the search field
+document.getElementById('forensicQuery')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') runForensicSearch();
+});
+
 (async () => {
     const ok = await checkAuth();
     if (!ok) return;
     startClock();
     await refreshAll();
-    setInterval(refreshAll, 3000); // 3 seconds for autonomous real-time updates
+    initSocketIO();
+    setInterval(refreshAll, 5000);
 })();

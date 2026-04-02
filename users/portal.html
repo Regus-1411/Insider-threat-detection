@@ -3,52 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Portal — Acme Corp</title>
+    <title>Employee Portal — Nexus Corp</title>
+    <meta name="description" content="Nexus Corp internal employee workspace.">
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-<!-- ══════════ HEADER ══════════ -->
-<header class="portal-header">
-    <div class="brand">Acme <span>Corp</span></div>
-    <div class="header-right">
-        <div class="user-info">Logged in as <strong id="userName">—</strong></div>
-        <span class="dept-badge" id="deptBadge">—</span>
-        <button class="btn-logout" id="logoutBtn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            Sign Out
-        </button>
-    </div>
-</header>
+<div class="app-shell" id="appShell" style="display:none">
 
-<!-- ══════════ MAIN ══════════ -->
-<main class="portal-body">
-
-    <!-- Welcome + quick stats -->
-    <div class="welcome-section">
-        <div>
-            <h1 id="welcomeTitle">Welcome back</h1>
-            <p class="welcome-sub" id="welcomeSub">Your workspace is ready.</p>
+    <!-- ══ SIDEBAR ══════════════════════════════════════════════ -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <span class="sidebar-logo">Nexus <span>Corp</span></span>
         </div>
-        <div class="quick-stats">
-            <div class="qs-item">
-                <div class="qs-value" id="statActions">0</div>
-                <div class="qs-label">Actions Today</div>
+        <nav class="sidebar-nav" id="sideNav">
+            <button class="nav-item active" data-view="dashboard" id="nav-dashboard">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                <span>Dashboard</span>
+            </button>
+            <button class="nav-item" data-view="files" id="nav-files">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                <span>File Manager</span>
+            </button>
+            <button class="nav-item" data-view="reports" id="nav-reports">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                <span>Reports</span>
+            </button>
+            <button class="nav-item" data-view="settings" id="nav-settings">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <span>Settings</span>
+            </button>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-card">
+                <div class="user-avatar" id="userAvatar">?</div>
+                <div class="user-details">
+                    <div class="user-full-name" id="sidebarName">—</div>
+                    <div class="user-dept-label" id="sidebarDept">—</div>
+                </div>
             </div>
-            <div class="qs-item">
-                <div class="qs-value" id="statTime">—</div>
-                <div class="qs-label">Session Started</div>
-            </div>
+            <button class="btn-logout" id="logoutBtn">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                <span>Sign Out</span>
+            </button>
         </div>
+    </aside>
+
+    <!-- ══ MAIN AREA ══════════════════════════════════════════════ -->
+    <div class="main-content">
+        <header class="topbar">
+            <div class="topbar-title" id="topbarTitle">Dashboard</div>
+            <div class="topbar-meta" id="topbarMeta"></div>
+        </header>
+        <main class="page-content" id="pageContent">
+            <!-- Rendered by portal.js -->
+        </main>
     </div>
 
-    <!-- Department workspace -->
-    <div class="workspace" id="workspace">
-        <div class="loading-msg">Loading your workspace…</div>
-    </div>
-
-</main>
+</div>
 
 <!-- Toast -->
 <div id="toast"></div>
