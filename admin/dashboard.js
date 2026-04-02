@@ -142,22 +142,23 @@ async function fetchUserDetail(userId) {
 function renderDrawer({ user, fingerprint, flags }) {
     drawerTitle.textContent = user.name;
 
-    // ── Terminate session section (shown always, active only when threat confirmed) ──
+    // ── Terminate session section ──────────────────────────────────────────────
     const isHigh = user.risk_level === 'High';
     const isOnline = !!user.is_active;
     const canTerminate = isOnline && isHigh;
     const terminateSection = `
-        <div class="terminate-box">
+        <div class="terminate-box${canTerminate ? ' terminate-box--armed' : ''}">
             <div class="term-label">
                 <span>Terminate Session</span>
                 <p>${isOnline
-            ? (isHigh ? '<span style="color:var(--danger)">High-risk threat confirmed — session can be forcefully terminated.</span>'
-                : 'Active session, but threat is not confirmed. Termination locked.')
+            ? (isHigh
+                ? '<span style="color:var(--danger,#ef4444)">⚡ High-risk threat confirmed — session can be forcefully terminated.</span>'
+                : 'Active session, but threat level is not High. Termination locked.')
             : 'User session is currently offline.'}</p>
             </div>
             <div class="toggle-wrap">
-                <span class="toggle-label" id="termLabel">${isOnline ? (isHigh ? 'Active' : 'Locked') : 'Offline'}</span>
-                <label class="toggle" title="${isOnline ? (isHigh ? 'Terminate session' : 'Threat not confirmed') : 'Session already offline'}">
+                <span class="toggle-label" id="termLabel">${isOnline ? (isHigh ? 'Armed' : 'Locked') : 'Offline'}</span>
+                <label class="toggle" title="${isOnline ? (isHigh ? 'Click to terminate session' : 'Threat level not High') : 'Session already offline'}">
                     <input type="checkbox" id="terminateSwitch"
                         ${canTerminate ? '' : 'disabled'}
                         onchange="handleTerminate(${user.id}, this)">
@@ -236,30 +237,101 @@ function renderDrawer({ user, fingerprint, flags }) {
     drawerBody.innerHTML = terminateSection + infoSection + riskSection + fpSection + flagsSection;
 }
 
-// ── Terminate session ────────────────────────────────────────────────────────
-async function handleTerminate(userId, checkbox) {
-    const confirmed = confirm('Terminate this user\'s session? This will mark them as offline immediately.');
-    if (!confirmed) {
-        checkbox.checked = false;
-        return;
+// ── Terminate Modal ───────────────────────────────────────────────────────────
+let _pendingTerminate = null; // { userId, userName, source, btn }
+let _countdownInterval = null;
+
+function openTerminateModal(userId, userName, source, btn) {
+    _pendingTerminate = { userId, userName, source, btn: btn || null };
+
+    document.getElementById('tmTargetName').textContent = userName;
+
+    // 5-second anti-misclick countdown
+    let secs = 5;
+    const countEl  = document.getElementById('tmCountdown');
+    const confirmBtn = document.getElementById('tmConfirmBtn');
+    countEl.textContent = secs;
+    confirmBtn.disabled = true;
+    confirmBtn.style.opacity = '0.45';
+    confirmBtn.style.cursor = 'not-allowed';
+
+    clearInterval(_countdownInterval);
+    _countdownInterval = setInterval(() => {
+        secs -= 1;
+        countEl.textContent = secs;
+        if (secs <= 0) {
+            clearInterval(_countdownInterval);
+            confirmBtn.disabled = false;
+            confirmBtn.style.opacity = '1';
+            confirmBtn.style.cursor = 'pointer';
+        }
+    }, 1000);
+
+    document.getElementById('terminateModal').classList.add('open');
+}
+
+function cancelTerminate() {
+    clearInterval(_countdownInterval);
+    document.getElementById('terminateModal').classList.remove('open');
+    const b = _pendingTerminate?.btn;
+    if (b) {
+        b.disabled = false;
+        b.textContent = '\u26d4 Terminate Session';
     }
+    _pendingTerminate = null;
+}
+
+async function confirmTerminate() {
+    if (!_pendingTerminate) return;
+    const { userId, userName, source, btn } = _pendingTerminate;
+    clearInterval(_countdownInterval);
+    document.getElementById('terminateModal').classList.remove('open');
+    _pendingTerminate = null;
+    await _doTerminateRequest(userId, userName, source, btn);
+}
+
+async function _doTerminateRequest(userId, userName, source, btn) {
     try {
         await fetch(`${API}/api/admin/terminate/${userId}`, {
             method: 'POST',
             credentials: 'include',
         });
-        // Update local data & re-render
+
+        // Update local state
         const u = allUsers.find(u => u.id === userId);
         if (u) u.is_active = 0;
         renderUsers(allUsers);
         loadSummary();
         loadActiveSessions();
-        // Re-fetch drawer to update status display
-        fetchUserDetail(userId);
+
+        if (source === 'drawer') {
+            fetchUserDetail(userId);
+        }
+        if (source === 'panel' && btn) {
+            const row = btn.closest('tr');
+            if (row) { row.style.transition = 'opacity .6s'; row.style.opacity = '0.35'; }
+            btn.textContent = '\u2713 Terminated';
+        }
     } catch {
-        alert('Failed to terminate session. Please try again.');
-        checkbox.checked = false;
+        if (source === 'panel' && btn) {
+            btn.disabled = false;
+            btn.textContent = '\u26d4 Terminate Session';
+        }
     }
+}
+
+// Entry points called via inline onclick
+function handleTerminate(userId, checkbox) {
+    checkbox.checked = false; // always uncheck; modal confirms
+    const user = allUsers.find(u => u.id === userId);
+    openTerminateModal(userId, user?.name || `User #${userId}`, 'drawer');
+}
+
+function terminateFromPanel(userId, btn) {
+    btn.disabled = true;
+    btn.textContent = 'Confirm\u2026';
+    const user = allUsers.find(u => u.id === userId);
+    openTerminateModal(userId, user?.name || `User #${userId}`, 'panel', btn);
 }
 
 // ── Resolve flag (from drawer) ────────────────────────────────────────────────
@@ -270,28 +342,25 @@ async function resolveFlag(flagId, userId) {
             credentials: 'include',
         });
         loadSummary();
-        fetchUserDetail(userId); // refresh drawer
+        fetchUserDetail(userId);
     } catch {
         alert('Failed to resolve flag.');
     }
 }
 
-// ── Active Sessions (Off-Hours Alerts) ───────────────────────────────────────
+// ── Active Sessions Panel ─────────────────────────────────────────────────────
 async function loadActiveSessions() {
     const tbody = document.getElementById('activeSessionsTbody');
     try {
         const res = await fetch(`${API}/api/admin/active-sessions`, { credentials: 'include' });
         const rows = await res.json();
 
-        // Show all active sessions that have an unresolved flag
-        const flagged = rows;
-
-        if (!flagged.length) {
-            tbody.innerHTML = '<tr class="empty-row"><td colspan="7" style="color:var(--muted)">No off-hours sessions detected.</td></tr>';
+        if (!rows.length) {
+            tbody.innerHTML = '<tr class="empty-row"><td colspan="7" style="color:var(--muted)">No flagged active sessions detected.</td></tr>';
             return;
         }
 
-        tbody.innerHTML = flagged.map(r => `
+        tbody.innerHTML = rows.map(r => `
             <tr>
                 <td><strong>${r.name}</strong></td>
                 <td>${r.email}</td>
@@ -301,35 +370,13 @@ async function loadActiveSessions() {
                 <td><span class="badge badge-low">${r.severity || 'Low'}</span></td>
                 <td>
                     <button class="btn-terminate" onclick="terminateFromPanel(${r.id}, this)">
-                        ⛔ Terminate Session
+                        &#9940; Terminate Session
                     </button>
                 </td>
             </tr>
         `).join('');
     } catch {
         tbody.innerHTML = '<tr class="empty-row"><td colspan="7">Failed to load active sessions.</td></tr>';
-    }
-}
-
-async function terminateFromPanel(userId, btn) {
-    if (!confirm('Terminate this user\'s session? They will be forced off within ~8 seconds.')) return;
-    btn.disabled = true;
-    btn.textContent = 'Terminating…';
-    try {
-        await fetch(`${API}/api/admin/terminate/${userId}`, {
-            method: 'POST', credentials: 'include',
-        });
-        const u = allUsers.find(u => u.id === userId);
-        if (u) u.is_active = 0;
-        renderUsers(allUsers);
-        loadSummary();
-        loadActiveSessions();
-        btn.closest('tr').style.opacity = '0.4';
-        btn.textContent = '✓ Terminated';
-    } catch {
-        alert('Failed to terminate session.');
-        btn.disabled = false;
-        btn.textContent = '⛔ Terminate Session';
     }
 }
 
@@ -345,13 +392,13 @@ function initSocketIO() {
     const socket = io('/admin', { withCredentials: true });
 
     socket.on('connect', () => {
-        const badge = document.getElementById('liveIndicator');
-        if (badge) { badge.textContent = 'LIVE'; badge.style.background = 'rgba(239,68,68,.15)'; badge.style.color = '#ef4444'; }
+        const liveEl = document.getElementById('liveIndicator');
+        if (liveEl) { liveEl.textContent = 'LIVE'; liveEl.style.background = 'rgba(239,68,68,.15)'; liveEl.style.color = '#ef4444'; }
     });
 
     socket.on('disconnect', () => {
-        const badge = document.getElementById('liveIndicator');
-        if (badge) { badge.textContent = 'offline'; badge.style.color = '#64748b'; }
+        const liveEl = document.getElementById('liveIndicator');
+        if (liveEl) { liveEl.textContent = 'offline'; liveEl.style.color = '#64748b'; }
     });
 
     socket.on('security_alert', (data) => {
@@ -359,7 +406,6 @@ function initSocketIO() {
         const feed = document.getElementById('alertFeed');
         if (!feed) return;
 
-        // Clear placeholder on first real event
         if (_alertCount === 1) feed.innerHTML = '';
 
         const sevClass = {
@@ -385,12 +431,52 @@ function initSocketIO() {
                 </div>
             </div>
         `;
-        // Prepend so newest alerts appear at top
         feed.insertBefore(item, feed.firstChild);
 
-        // Refresh the user table so risk scores update
         loadUsers();
         loadSummary();
+    });
+
+    // ── session_terminated: inject a dramatic TERMINATED card ──────────────────
+    socket.on('session_terminated', (data) => {
+        const feed = document.getElementById('alertFeed');
+        if (!feed) return;
+
+        if (_alertCount === 0) feed.innerHTML = '';
+        _alertCount++;
+
+        const ts = data.timestamp
+            ? new Date(data.timestamp).toLocaleTimeString()
+            : new Date().toLocaleTimeString();
+
+        const item = document.createElement('div');
+        item.className = 'alert-item alert-item--terminated';
+        item.innerHTML = `
+            <div class="alert-dot dot-critical"></div>
+            <div class="alert-body">
+                <div class="alert-title" style="color:#ef4444;letter-spacing:.3px;">
+                    &#9940; SESSION TERMINATED — ${data.user_name}
+                </div>
+                <div class="alert-sub">
+                    Admin forced logout &nbsp;|&nbsp;
+                    <strong>${data.user_email}</strong> (${data.department}) &nbsp;|&nbsp; ${ts}
+                </div>
+            </div>
+            <span class="badge badge-high" style="flex-shrink:0;align-self:center;">CRITICAL</span>
+        `;
+        feed.insertBefore(item, feed.firstChild);
+
+        // Flash the TERMINATED row red in the user table, then reload
+        const row = document.querySelector(`tr[data-id="${data.user_id}"]`);
+        if (row) {
+            row.style.transition = 'background .3s';
+            row.style.background = 'rgba(239,68,68,.18)';
+            setTimeout(() => { row.style.background = ''; }, 1200);
+        }
+
+        loadUsers();
+        loadSummary();
+        loadActiveSessions();
     });
 }
 
@@ -438,7 +524,6 @@ async function runForensicSearch() {
     }
 }
 
-// Support pressing Enter in the search field
 document.getElementById('forensicQuery')?.addEventListener('keydown', e => {
     if (e.key === 'Enter') runForensicSearch();
 });

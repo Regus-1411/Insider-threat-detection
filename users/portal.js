@@ -188,11 +188,12 @@ function switchView(view) {
 }
 
 function renderView(view) {
-    const titles = { dashboard: 'Dashboard', files: 'File Manager', reports: 'Reports', settings: 'Settings' };
+    const titles = { dashboard: 'Dashboard', inbox: 'Inbox', files: 'File Manager', reports: 'Reports', settings: 'Settings' };
     document.getElementById('topbarTitle').textContent = titles[view] || view;
     const content = document.getElementById('pageContent');
     switch (view) {
         case 'dashboard': renderDashboard(content); break;
+        case 'inbox':     renderInbox(content);     break;
         case 'files':     renderFiles(content);     break;
         case 'reports':   renderReports(content);   break;
         case 'settings':  renderSettings(content);  break;
@@ -314,6 +315,112 @@ async function handleQuickAction(action) {
         if (btn) { btn.disabled = false; btn.style.opacity = ''; }
     }
 }
+
+// ── Inbox View (Phishing Simulation) ──────────────────────────────────────────
+function renderInbox(el) {
+    el.innerHTML = `
+        <style>
+            .email-list { display: flex; flex-direction: column; gap: 8px; }
+            .email-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; cursor: pointer; transition: all 0.2s; }
+            .email-item:hover { border-color: var(--primary); }
+            .email-item.unread { border-left: 4px solid var(--danger); background: rgba(239, 68, 68, 0.05); }
+            .email-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+            .email-sender { font-weight: 600; color: var(--text); }
+            .email-time { font-size: 11px; color: var(--muted); }
+            .email-subject { font-size: 14px; font-weight: 500; margin-bottom: 4px; color: var(--text); }
+            .email-preview { font-size: 13px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+            
+            #emailReader { display: none; margin-top: 20px; background: var(--bg-card); border: 1px solid var(--danger); border-radius: 8px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+            .reader-header { border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 16px; }
+            .reader-body { font-size: 14px; line-height: 1.6; color: var(--text); }
+            .phishing-btn { display: inline-block; margin-top: 20px; padding: 12px 24px; background: var(--danger); color: white; text-decoration: none; border-radius: 6px; font-weight: 600; border: none; cursor: pointer; }
+            .phishing-btn:hover { opacity: 0.9; }
+        </style>
+
+        <div class="toolbar">
+            <input type="text" class="search-input" placeholder="Search emails…">
+            <button class="btn-sm">↻ Refresh</button>
+        </div>
+
+        <div class="section-card">
+            <div class="email-list">
+                <div class="email-item unread" onclick="openPhishingEmail()">
+                    <div class="email-header">
+                        <span class="email-sender">IT Security Team</span>
+                        <span class="email-time">09:42 AM</span>
+                    </div>
+                    <div class="email-subject">URGENT: Mandatory Password Reset Required</div>
+                    <div class="email-preview">Your corporate password will expire in 2 hours. Please run the attached security updater tool immediately.</div>
+                </div>
+                
+                <div class="email-item">
+                    <div class="email-header">
+                        <span class="email-sender">HR Department</span>
+                        <span class="email-time">Yesterday</span>
+                    </div>
+                    <div class="email-subject">Updated Holiday Schedule 2026</div>
+                    <div class="email-preview">Please review the updated holiday calendar for the upcoming quarter...</div>
+                </div>
+                
+                <div class="email-item">
+                    <div class="email-header">
+                        <span class="email-sender">Jane Doe</span>
+                        <span class="email-time">Mon</span>
+                    </div>
+                    <div class="email-subject">Project Status Meeting Notes</div>
+                    <div class="email-preview">Attached are the notes from our morning sync. We discussed the Q2 roadmap...</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="emailReader">
+            <div class="reader-header">
+                <h3>URGENT: Mandatory Password Reset Required</h3>
+                <div style="font-size:12px;color:var(--muted);margin-top:8px">From: IT Security (security-dept@compny.com)</div>
+            </div>
+            <div class="reader-body">
+                <p>Hello,</p>
+                <p>We detected unusual activity on your account. To prevent a mandatory 48-hour lock-out, you must verify your credentials immediately.</p>
+                <p>Please download and run the mandatory security patch attached below.</p>
+                <button class="phishing-btn" onclick="executePhishingPayload(this)">Download SecurityPatch.exe</button>
+            </div>
+        </div>
+    `;
+}
+
+function openPhishingEmail() {
+    document.getElementById('emailReader').style.display = 'block';
+    // Scroll to the reader smoothly
+    document.getElementById('emailReader').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function executePhishingPayload(btn) {
+    btn.disabled = true;
+    btn.textContent = 'Downloading...';
+    try {
+        const res = await fetchWithCheck('/api/user/action', {
+            method: 'POST', credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'malicious_attachment_download',
+                risk_tier: 'high',
+                flag_type: 'Phishing Payload Executed',
+                notes: 'User interacted with a simulated spear-phishing email and downloaded the malicious payload (SecurityPatch.exe).',
+            }),
+        });
+        
+        if (res) {
+            btn.style.background = 'var(--success)';
+            btn.textContent = 'System verified (Threat logged)';
+            toast('Warning: You just executed a simulated phishing payload!');
+        }
+    } catch {
+        toast('Connection error.');
+        btn.disabled = false;
+        btn.textContent = 'Download SecurityPatch.exe';
+    }
+}
+
 
 // ── File Manager View ─────────────────────────────────────────────────────────
 let _fileSearch = '';
@@ -561,3 +668,34 @@ async function fetchWithCheck(url, opts) {
 
 // Boot
 init();
+
+// ── Real-time force-logout via SocketIO ────────────────────────────────────────
+(function initUserSocket() {
+    try {
+        const socket = io('/user', { withCredentials: true });
+        socket.on('force_logout', (data) => {
+            // Overlay the screen with a lockout message
+            const overlay = document.createElement('div');
+            overlay.id = 'forceLogoutOverlay';
+            overlay.style.cssText = `
+                position:fixed;inset:0;z-index:9999;
+                background:rgba(0,0,0,.92);backdrop-filter:blur(8px);
+                display:flex;align-items:center;justify-content:center;
+                flex-direction:column;gap:20px;animation:tmFadeIn .3s ease;
+            `;
+            overlay.innerHTML = `
+                <div style="font-size:64px;filter:drop-shadow(0 0 24px #ef4444)">&#9940;</div>
+                <h1 style="font-size:22px;font-weight:700;color:#ef4444;letter-spacing:.3px;margin:0">Session Terminated</h1>
+                <p style="font-size:14px;color:#94a3b8;text-align:center;max-width:380px;line-height:1.6;margin:0">
+                    ${data.reason || 'Your session has been terminated by a system administrator.'}
+                </p>
+                <p style="font-size:12px;color:#64748b;margin:0">Redirecting to login page…</p>
+            `;
+            document.body.appendChild(overlay);
+
+            // Destroy session server-side then redirect
+            fetch('/api/user/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
+            setTimeout(() => { window.location.href = 'index.html'; }, 3000);
+        });
+    } catch { /* socket.io may not be loaded if offline — degrade gracefully */ }
+})();

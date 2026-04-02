@@ -25,6 +25,13 @@ socketio = SocketIO(
 def admin_connect():
     join_room('admins')
 
+@socketio.on('connect', namespace='/user')
+def user_connect():
+    from flask import session as flask_session
+    uid = flask_session.get('user_id')
+    if uid:
+        join_room(f'user_{uid}')
+
 # ── Register blueprints ────────────────────────────────────────────────────────
 app.register_blueprint(auth_bp)
 app.register_blueprint(dashboard_bp)
