@@ -1,5 +1,6 @@
-from flask import Blueprint, jsonify, session
+from flask import Blueprint, jsonify, session, request
 from database import get_connection
+from services.search_service import search, aggregations
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
@@ -192,3 +193,28 @@ def risk_scores():
     """).fetchall()
     conn.close()
     return jsonify([dict(r) for r in rows])
+
+
+# ─── Forensic search (Elastic-Mock) ──────────────────────────────────────────
+
+@dashboard_bp.route('/api/forensic/search', methods=['GET'])
+def forensic_search():
+    if require_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    query    = request.args.get('q', '')
+    uid      = request.args.get('user_id', type=int)
+    severity = request.args.get('severity', '')
+    limit    = request.args.get('limit', 100, type=int)
+
+    results = search(query=query, user_id=uid,
+                     severity=severity or None, limit=limit)
+    return jsonify(results)
+
+
+@dashboard_bp.route('/api/forensic/aggregations', methods=['GET'])
+def forensic_aggregations():
+    if require_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    return jsonify(aggregations())

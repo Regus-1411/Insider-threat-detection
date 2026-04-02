@@ -6,6 +6,60 @@
     <title>Dashboard — Insider Threat Monitor</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Socket.io client for real-time admin alerts -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+        /* ── Live Alert Feed ───────────────────────────────────────────── */
+        #alertFeed { max-height: 240px; overflow-y: auto; }
+        .alert-item {
+            display: flex; gap: 12px; padding: 10px 0;
+            border-bottom: 1px solid var(--surface2, #263347);
+            animation: alertIn .3s ease;
+        }
+        .alert-item:last-child { border-bottom: none; }
+        @keyframes alertIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .alert-dot {
+            width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px;
+        }
+        .dot-critical { background: #ef4444; }
+        .dot-high     { background: #f59e0b; }
+        .dot-medium   { background: #3b82f6; }
+        .alert-body   { flex: 1; }
+        .alert-title  { font-size: 13px; font-weight: 600; }
+        .alert-sub    { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+        .forensic-row { display: flex; gap: 8px; margin-bottom: 14px; }
+        .forensic-input {
+            flex: 1; padding: 8px 12px;
+            background: #1e293b; border: 1px solid #334155;
+            border-radius: 6px; color: #e2e8f0; font-size: 13px;
+            font-family: 'Inter', system-ui;
+        }
+        .forensic-input:focus { outline: none; border-color: #6366f1; }
+        .fs-result-count { font-size: 11px; color: #94a3b8; margin-bottom: 10px; }
+        #forensicResults { max-height: 280px; overflow-y: auto; }
+        .fs-row {
+            display: grid; grid-template-columns: 1fr 100px 90px 80px;
+            gap: 12px; padding: 8px 0;
+            border-bottom: 1px solid #1a2236;
+            font-size: 12px;
+        }
+        .fs-header { font-size: 10px; font-weight: 600; text-transform: uppercase;
+                     letter-spacing: .5px; color: #64748b; }
+        .sev-critical { color: #ef4444; font-weight: 600; }
+        .sev-high     { color: #f59e0b; font-weight: 600; }
+        .sev-medium   { color: #3b82f6; font-weight: 600; }
+        .sev-low      { color: #22c55e; }
+        .live-badge {
+            display: inline-block; font-size: 10px; font-weight: 700;
+            padding: 2px 8px; border-radius: 4px; text-transform: uppercase;
+            background: rgba(239,68,68,.15); color: #ef4444;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%,100%{ opacity: 1; } 50%{ opacity: .5; } }
+    </style>
 </head>
 <body>
 
@@ -115,6 +169,41 @@
                     <tr class="loading-row"><td colspan="6">Loading…</td></tr>
                 </tbody>
             </table>
+        </div>
+    </div>
+    <!-- ═══════════════ LIVE ALERT FEED ════════════════════════════════ -->
+    <div class="panel" style="border-left:3px solid #ef4444;">
+        <div class="panel-header">
+            <h2>🔴 Live Security Alerts <span class="live-badge" id="liveIndicator">connecting…</span></h2>
+            <span class="hint">Real-time interceptor events. Sorted newest first.</span>
+        </div>
+        <div id="alertFeed">
+            <div style="color:#64748b;font-size:12px;padding:16px 0">Waiting for interceptor events…</div>
+        </div>
+    </div>
+
+    <!-- ═══════════════ FORENSIC SEARCH ══════════════════════════════════ -->
+    <div class="panel">
+        <div class="panel-header">
+            <h2>🔍 Forensic Search</h2>
+            <span class="hint">Query intercepted traffic across all sessions.</span>
+        </div>
+        <div class="forensic-row">
+            <input type="text" id="forensicQuery" class="forensic-input" placeholder="Search: username, flag type, path, IP…">
+            <select id="forensicSeverity" class="forensic-input" style="flex:none;width:130px">
+                <option value="">All Severities</option>
+                <option value="Critical">Critical</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+            </select>
+            <button class="btn btn-danger" style="padding:8px 16px;font-size:13px" onclick="runForensicSearch()">Search</button>
+        </div>
+        <div class="fs-result-count" id="fsCount"></div>
+        <div id="forensicResults">
+            <div class="fs-row fs-header">
+                <span>Flag / Path</span><span>User</span><span>Severity</span><span>Time</span>
+            </div>
         </div>
     </div>
 

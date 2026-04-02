@@ -30,7 +30,8 @@ def admin_login():
 
 @auth_bp.route('/api/admin/logout', methods=['POST'])
 def admin_logout():
-    session.clear()
+    session.pop('admin_id', None)
+    session.pop('admin_email', None)
     return jsonify({'message': 'Logged out'}), 200
 
 
