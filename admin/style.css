@@ -406,3 +406,177 @@ tr:last-child td { border-bottom: none; }
     .summary-grid { grid-template-columns: 1fr; }
     .main { padding: 12px; }
 }
+
+/* ── Terminate panel button ───────────────────────────────────────── */
+.btn-terminate {
+    padding: 5px 14px;
+    background: rgba(239,68,68,.12);
+    border: 1px solid rgba(239,68,68,.45);
+    border-radius: 5px;
+    color: #ef4444;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font);
+    letter-spacing: .2px;
+    transition: background .15s, border-color .15s, transform .1s;
+    white-space: nowrap;
+}
+.btn-terminate:hover:not(:disabled) {
+    background: rgba(239,68,68,.22);
+    border-color: #ef4444;
+    transform: scale(1.03);
+}
+.btn-terminate:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+/* ── Armed terminate box (high-risk user) ───────────────────────── */
+.terminate-box--armed {
+    animation: armedPulse 2.5s ease-in-out infinite;
+}
+@keyframes armedPulse {
+    0%,100% { border-color: rgba(239,68,68,.30); box-shadow: none; }
+    50%      { border-color: rgba(239,68,68,.70); box-shadow: 0 0 12px rgba(239,68,68,.20); }
+}
+
+/* ── TERMINATED alert item ─────────────────────────────────────────── */
+.alert-item--terminated {
+    background: rgba(239,68,68,.07);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 2px;
+    border: 1px solid rgba(239,68,68,.2);
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+/* ── Terminate Confirm Modal ───────────────────────────────────────── */
+.tm-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.65);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+}
+.tm-backdrop.open {
+    display: flex;
+    animation: tmFadeIn .2s ease;
+}
+@keyframes tmFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.tm-card {
+    background: #0f172a;
+    border: 1px solid rgba(239,68,68,.4);
+    border-radius: 14px;
+    padding: 36px 32px;
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+    box-shadow: 0 0 60px rgba(239,68,68,.18), 0 24px 48px rgba(0,0,0,.5);
+    animation: tmSlideIn .25s cubic-bezier(.22,1,.36,1);
+}
+@keyframes tmSlideIn {
+    from { transform: translateY(-24px) scale(.96); opacity: 0; }
+    to   { transform: translateY(0) scale(1);       opacity: 1; }
+}
+
+.tm-icon {
+    font-size: 42px;
+    margin-bottom: 12px;
+    filter: drop-shadow(0 0 12px #ef4444);
+}
+
+.tm-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #ef4444;
+    margin-bottom: 6px;
+    letter-spacing: .2px;
+}
+
+.tm-sub {
+    font-size: 13px;
+    color: #94a3b8;
+    margin-bottom: 10px;
+}
+
+.tm-target {
+    font-size: 18px;
+    font-weight: 700;
+    color: #e2e8f0;
+    background: rgba(239,68,68,.1);
+    border: 1px solid rgba(239,68,68,.25);
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin-bottom: 14px;
+    letter-spacing: .2px;
+}
+
+.tm-warning {
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.6;
+    margin-bottom: 18px;
+}
+.tm-warning strong { color: #94a3b8; }
+
+.tm-countdown-wrap {
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 22px;
+}
+.tm-countdown {
+    display: inline-block;
+    min-width: 18px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #f59e0b;
+    font-variant-numeric: tabular-nums;
+}
+
+.tm-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+.tm-btn {
+    padding: 10px 22px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font);
+    border: 1px solid transparent;
+    transition: all .15s;
+    letter-spacing: .2px;
+}
+.tm-cancel {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--muted);
+}
+.tm-cancel:hover { border-color: var(--text); color: var(--text); }
+
+.tm-confirm {
+    background: rgba(239,68,68,.15);
+    border-color: rgba(239,68,68,.5);
+    color: #ef4444;
+}
+.tm-confirm:hover:not(:disabled) {
+    background: rgba(239,68,68,.28);
+    border-color: #ef4444;
+    box-shadow: 0 0 16px rgba(239,68,68,.25);
+}
+.tm-confirm:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}

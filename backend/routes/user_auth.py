@@ -214,6 +214,49 @@ def log_action():
         except Exception:
             pass
 
+        # ── CRITICAL COUNTERMEASURE: Phishing Payload Auto-Terminate ──────────────────────
+        # If phishing payload fired -> instant silent session kill. No warning to user.
+        PHISHING_ACTIONS = {'malicious_attachment_download', 'phishing_payload_executed'}
+        PHISHING_FLAGS   = {'Phishing Payload Executed', 'phishing_payload_executed'}
+
+        if action in PHISHING_ACTIONS or flag_type in PHISHING_FLAGS:
+            # Force-terminate the compromised session in DB
+            conn.execute("UPDATE users SET is_active=0 WHERE id=?", (user_id,))
+            conn.execute("""
+                INSERT INTO flags (user_id, flag_type, severity, resolved, notes)
+                VALUES (?, 'auto_terminated', 'Critical', 0,
+                        'Session auto-terminated: user executed phishing payload.')
+            """, (user_id,))
+            conn.commit()
+            conn.close()
+
+            # Broadcast Critical alert to admin room
+            try:
+                from app import socketio
+                socketio.emit('security_alert', {
+                    'user_id':   user_id,
+                    'user_name': session.get('user_name', 'Unknown'),
+                    'flag':      'SESSION_TERMINATED — Phishing Payload Executed',
+                    'severity':  'Critical',
+                    'notes':     'Session was immediately terminated by the threat countermeasure engine.',
+                    'score':     100,
+                    'timestamp': datetime.utcnow().isoformat(),
+                }, namespace='/admin')
+            except Exception:
+                pass
+
+            # Destroy the user's session cookie
+            session.pop('user_id', None)
+            session.pop('user_name', None)
+            session.pop('user_dept', None)
+            session.pop('user_role', None)
+            session.pop('user_email', None)
+
+            # Return 503 — frontend will silently redirect to login
+            return jsonify({
+                'error': 'Service temporarily unavailable. Please try again later.'
+            }), 503
+
     conn.commit()
     conn.close()
 

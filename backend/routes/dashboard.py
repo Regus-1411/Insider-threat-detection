@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, session, request
 from database import get_connection
 from services.search_service import search, aggregations
+from datetime import datetime
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
@@ -123,12 +124,7 @@ def user_detail(user_id):
 def terminate_session(user_id):
     if require_auth():
         return jsonify({'error': 'Unauthorized'}), 401
-
-    conn = get_connection()
-    conn.execute("UPDATE users SET is_active = 0 WHERE id = ?", (user_id,))
-    conn.commit()
-    conn.close()
-    return jsonify({'message': 'Session terminated'})
+    return _do_terminate(user_id)
 
 
 # ─── Terminate via /api/admin/terminate/<id> (used by dashboard.js) ──────────
@@ -137,12 +133,68 @@ def terminate_session(user_id):
 def admin_terminate(user_id):
     if require_auth():
         return jsonify({'error': 'Unauthorized'}), 401
+    return _do_terminate(user_id)
 
+
+def _do_terminate(user_id):
+    """Shared termination logic: DB update + flag log + SocketIO broadcast."""
     conn = get_connection()
+
+    # Fetch user info for the alert payload
+    user = conn.execute(
+        "SELECT name, email, department FROM users WHERE id=?", (user_id,)
+    ).fetchone()
+
     conn.execute("UPDATE users SET is_active = 0 WHERE id = ?", (user_id,))
+
+    # Log a Critical audit flag
+    conn.execute("""
+        INSERT INTO flags (user_id, flag_type, severity, resolved, notes)
+        VALUES (?, 'admin_forced_termination', 'Critical', 0,
+                'Session forcibly terminated by admin via threat console.')
+    """, (user_id,))
+
     conn.commit()
     conn.close()
-    return jsonify({'message': 'Session terminated'})
+
+    user_name  = user['name']       if user else f'User #{user_id}'
+    user_email = user['email']      if user else '—'
+    user_dept  = user['department'] if user else '—'
+    ts         = datetime.utcnow().isoformat()
+
+    # Broadcast to admin alert feed
+    try:
+        from app import socketio
+        socketio.emit('session_terminated', {
+            'user_id':    user_id,
+            'user_name':  user_name,
+            'user_email': user_email,
+            'department': user_dept,
+            'timestamp':  ts,
+        }, namespace='/admin')
+        # Also emit as a security_alert so it appears in the live feed card
+        socketio.emit('security_alert', {
+            'user_id':   user_id,
+            'user_name': user_name,
+            'flag':      'ADMIN_FORCED_TERMINATION',
+            'severity':  'Critical',
+            'notes':     f'Admin terminated session for {user_email} ({user_dept}).',
+            'score':     100,
+            'timestamp': ts,
+        }, namespace='/admin')
+        # Push force-logout to the user's own socket room
+        socketio.emit('force_logout', {
+            'reason': 'Your session has been terminated by a system administrator.'
+        }, room=f'user_{user_id}', namespace='/user')
+    except Exception:
+        pass
+
+    return jsonify({
+        'message':    'Session terminated',
+        'user_name':  user_name,
+        'user_email': user_email,
+        'timestamp':  ts,
+    })
 
 
 # ─── Active sessions with off-hours flags ─────────────────────────────────────

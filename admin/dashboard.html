@@ -222,6 +222,30 @@
     </div>
 </aside>
 
+<!-- ══════════════════ TERMINATE CONFIRM MODAL ═════════════════ -->
+<div class="tm-backdrop" id="terminateModal">
+    <div class="tm-card">
+        <div class="tm-icon">&#9940;</div>
+        <h2 class="tm-title">Terminate Session</h2>
+        <p class="tm-sub">You are about to forcibly terminate the active session of:</p>
+        <div class="tm-target" id="tmTargetName">—</div>
+        <p class="tm-warning">
+            This action will immediately revoke access, log an audit event,
+            and push a force-logout signal to the user's browser.
+            <strong>This cannot be undone.</strong>
+        </p>
+        <div class="tm-countdown-wrap">
+            Confirm available in <span class="tm-countdown" id="tmCountdown">5</span>s
+        </div>
+        <div class="tm-actions">
+            <button class="tm-btn tm-cancel" onclick="cancelTerminate()">Cancel</button>
+            <button class="tm-btn tm-confirm" id="tmConfirmBtn" onclick="confirmTerminate()" disabled>
+                &#9940; Confirm Termination
+            </button>
+        </div>
+    </div>
+</div>
+
 <script src="dashboard.js"></script>
 </body>
 </html>
